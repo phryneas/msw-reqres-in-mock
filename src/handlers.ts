@@ -45,6 +45,12 @@ export function getHandlers({
   };
 
   const state = { ...initialState };
+
+  function getSubState(req: MockedRequest) {
+    console.log(state, req);
+    return state[req.params.entity] ?? genericAdapter.getInitialState();
+  }
+
   return [
     rest.post<RegisterUserBody, RegisterUserResponse>(
       `${baseUrl}/register`,
@@ -86,10 +92,7 @@ export function getHandlers({
       AnyApiSlice['GetSingle']['Params']
     >(`${baseUrl}/:entity/:id`, async (req, res, ctx) => {
       await delay(req);
-      const data = genericSelectors.selectById(
-        state[req.params.entity],
-        req.params.id
-      );
+      const data = genericSelectors.selectById(getSubState(req), req.params.id);
       if (data) {
         return res(ctx.json({ data }));
       } else {
@@ -101,16 +104,17 @@ export function getHandlers({
       AnyApiSlice['GetList']['Response'],
       AnyApiSlice['GetList']['Params']
     >(`${baseUrl}/:entity`, async (req, res, ctx) => {
-      const page = Number(req.url.searchParams.get('page')) ?? 1;
-      const per_page = Number(req.url.searchParams.get('per_page')) ?? 6;
-      const all = genericSelectors.selectAll(state[req.params.entity]);
+      const page = Number(req.url.searchParams.get('page')) || 1;
+      const per_page = Number(req.url.searchParams.get('per_page')) || 6;
+      const all = genericSelectors.selectAll(getSubState(req));
+      const start = page * per_page - 1;
       return res(
         ctx.json({
           page,
           per_page,
           total: all.length,
           total_pages: Math.ceil(all.length / per_page),
-          data: all.slice(page * per_page - 1, per_page),
+          data: all.slice(start, start + per_page),
         })
       );
     }),
@@ -128,10 +132,7 @@ export function getHandlers({
         id: String(faker.random.number()),
         createdAt: new Date().toUTCString(),
       };
-      state[req.params.entity] = genericAdapter.addOne(
-        state[req.params.entity],
-        user
-      );
+      state[req.params.entity] = genericAdapter.addOne(getSubState(req), user);
       return res(ctx.json(user));
     }),
     rest.put<
@@ -143,10 +144,7 @@ export function getHandlers({
       const unauth = unauthorizedResponse(req, res, ctx);
       if (unauth) return unauth;
 
-      const user = genericSelectors.selectById(
-        state[req.params.entity],
-        req.params.id
-      );
+      const user = genericSelectors.selectById(getSubState(req), req.params.id);
       if (!user) {
         return res(ctx.status(404), ctx.json({} as any));
       }
@@ -164,10 +162,7 @@ export function getHandlers({
       const unauth = unauthorizedResponse(req, res, ctx);
       if (unauth) return unauth;
 
-      const user = genericSelectors.selectById(
-        state[req.params.entity],
-        req.params.id
-      );
+      const user = genericSelectors.selectById(getSubState(req), req.params.id);
       if (!user) {
         return res(ctx.status(404), ctx.json({} as any));
       }
@@ -185,15 +180,12 @@ export function getHandlers({
       const unauth = unauthorizedResponse(req, res, ctx);
       if (unauth) return unauth;
 
-      const user = genericSelectors.selectById(
-        state[req.params.entity],
-        req.params.id
-      );
+      const user = genericSelectors.selectById(getSubState(req), req.params.id);
       if (!user) {
         return res(ctx.status(404), ctx.json({} as any));
       }
       state[req.params.entity] = genericAdapter.removeOne(
-        state[req.params.entity],
+        getSubState(req),
         req.params.id
       );
       return res(ctx.status(204));
