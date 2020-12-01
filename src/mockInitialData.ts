@@ -5,7 +5,7 @@ const avatar = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' hei
 
 export function mockInitialData({
   seed = 1,
-  users = 50,
+  users = 9,
 }: {
   seed?: number;
   users?: number;

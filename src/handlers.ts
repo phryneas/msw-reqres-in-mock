@@ -47,7 +47,6 @@ export function getHandlers({
   const state = { ...initialState };
 
   function getSubState(req: MockedRequest) {
-    console.log(state, req);
     return state[req.params.entity] ?? genericAdapter.getInitialState();
   }
 
@@ -107,7 +106,7 @@ export function getHandlers({
       const page = Number(req.url.searchParams.get('page')) || 1;
       const per_page = Number(req.url.searchParams.get('per_page')) || 6;
       const all = genericSelectors.selectAll(getSubState(req));
-      const start = page * per_page - 1;
+      const start = (page - 1) * per_page;
       return res(
         ctx.json({
           page,
